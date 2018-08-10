@@ -1,0 +1,2 @@
+﻿[ ]   Add option to use transactions
+[ ]   Rework documentation into English
