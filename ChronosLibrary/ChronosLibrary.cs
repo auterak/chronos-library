@@ -1,26 +1,30 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
+using System.Transactions;
 
 /// <summary>
-/// Třída pro propojení aplikace s databází
+/// Class for database handling
 /// </summary>
 public class ChronosLibrary {
     private readonly string _provider;
     private readonly string _connString;
+    private readonly List<string> _commandList;
 
     /// <summary>
-    /// Konstruktor, nastavuje poskytovatele a řetězec pro připojení
+    /// Constructor - initializes provider, connection string and command list for transactions
     /// </summary>
-    /// <param name="providerName">Poskytovatel</param>
-    /// <param name="connString">Řetězec pro připojení</param>
+    /// <param name="providerName">Provider</param>
+    /// <param name="connString">Connection string</param>
     public ChronosLibrary(string providerName, string connString) {
         _provider = providerName;
         _connString = connString;
+        _commandList = new List<string>();
     }
 
     /// <summary>
-    /// Metoda pro testování spojení - pokud nelze navázat spojení, nastane vyjímka
+    /// Method for connection testing - throws exception - handled in app
     /// </summary>
     public void TestConnection() {
         var factory = DbProviderFactories.GetFactory(_provider);
@@ -31,59 +35,81 @@ public class ChronosLibrary {
     }
 
     /// <summary>
-    /// Metoda pro operace, které vrací hodnotu
+    /// Method for clearing the command list
     /// </summary>
-    /// <param name="queryString">Dotaz do databáze</param>
-    /// <returns>Datová tabulka s hodnotami</returns>
+    public void ClearTransaction() {
+        _commandList.Clear();
+    }
+
+    /// <summary>
+    /// Method for executing the transaction
+    /// </summary>
+    public void ExecuteTransaction() {
+        using (var scope = new TransactionScope()) {                            //Using transaction scope - every command executed withing the scope has to be successful
+            var factory = DbProviderFactories.GetFactory(_provider);            //Factory creation
+            var conn = factory.CreateConnection();                              //Connection creation
+            conn.ConnectionString = _connString;
+
+            using (conn) {                                                      //Using created connection
+                conn.Open();
+                foreach (var command in _commandList) {                         //Iterating through every saved command/query
+                    var dbCommand = conn.CreateCommand();                       //Command creation
+                    dbCommand.CommandText = command;
+                    dbCommand.CommandType = CommandType.Text;
+                    dbCommand.ExecuteNonQuery();                                //Command execution
+                }
+            }
+            scope.Complete();                                                   //Commiting transaction
+        }
+    }
+
+    /// <summary>
+    /// Method for value returning operations
+    /// </summary>
+    /// <param name="queryString">Database query</param>
+    /// <returns>Data table filled with values</returns>
     private DataTable ExecuteFunctionWithResult(string queryString) {
-        //Vytvoření továrny
-        var factory = DbProviderFactories.GetFactory(_provider);
-        //Vytvoření spojení
-        var conn = factory.CreateConnection();
+        var factory = DbProviderFactories.GetFactory(_provider);                //Factory creation
+        var conn = factory.CreateConnection();                                  //Connection creation
         conn.ConnectionString = _connString;
-        //Použití vytvořeného spojení
-        using (conn) {
-            //Vytvoření příkazu
-            var command = conn.CreateCommand();
+
+        using (conn) {                                                          //Using created connection
+            var command = conn.CreateCommand();                                 //Command creation
             command.CommandText = queryString;
             command.CommandType = CommandType.Text;
-            //Vytvoření adaptéru
-            var adapter = factory.CreateDataAdapter();
-            adapter.SelectCommand = command;
-            //Vytvoření a naplnění datové tabulky
+
+            var adapter = factory.CreateDataAdapter();                          //Adapter creation
+            adapter.SelectCommand = command;                                    //Using created command in adapter
+
             var table = new DataTable();
-            adapter.Fill(table);
+            adapter.Fill(table);                                                //Filling data table via created adapter
             return table;
         }
     }
 
     /// <summary>
-    /// Metoda pro operace, které nevracejí hodnotu
+    /// Method for non query operations
     /// </summary>
-    /// <param name="queryString">Dotaz do databáze</param>
-    private void ExecuteFunction(string queryString) {
-        //Vytvoření tovární
-        var factory = DbProviderFactories.GetFactory(_provider);
-        //Vytvoření připojení
-        var conn = factory.CreateConnection();
+    /// <param name="commandString">Database command</param>
+    private void ExecuteFunction(string commandString) {
+        var factory = DbProviderFactories.GetFactory(_provider);                //Factory creation
+        var conn = factory.CreateConnection();                                  //Connection creation
         conn.ConnectionString = _connString;
-        //Použití připojení
-        using (conn) {
+
+        using (conn) {                                                          //Using created connection
             conn.Open();
-            //Vytvoření příkazu
-            var dbCommand = conn.CreateCommand();
-            dbCommand.CommandText = queryString;
+            var dbCommand = conn.CreateCommand();                               //Command creation
+            dbCommand.CommandText = commandString;
             dbCommand.CommandType = CommandType.Text;
-            //Vykonání příkazu
-            dbCommand.ExecuteNonQuery();
+            dbCommand.ExecuteNonQuery();                                        //Command execution
         }
     }
 
     /// <summary>
-    /// Metoda pro získání jedné hodnoty z datové tabulky
+    /// Method for extracting one value from data table
     /// </summary>
-    /// <param name="table">Zdrojová tabulka</param>
-    /// <returns>Řetězec s hodnotou</returns>
+    /// <param name="table">Source table</param>
+    /// <returns>Value string</returns>
     private static string ExtractFirst(DataTable table) {
         var dataRow = table.Rows[0];
         var dataColumn = table.Columns[0];
@@ -91,22 +117,71 @@ public class ChronosLibrary {
     }
 
     /// <summary>
-    /// Metoda pro získání seznamu atributů a hodnot z dokumentu
+    /// Method for adding set attribute operation to command list
     /// </summary>
-    /// <param name="docId">Identifikátor dokumentu</param>
-    /// <param name="time">Časová značka</param>
-    /// <returns>Datová tabulka se získanými informacemi</returns>
+    /// <param name="docId">Document ID</param>
+    /// <param name="name">Attribute name</param>
+    /// <param name="value">Attribute value</param>
+    /// <param name="link">Link flag</param>
+    /// <param name="user">Creator</param>
+    /// <param name="pwd">Creator's password</param>
+    public void AddSetAttribute(int docId, string name, string value, bool link, string user, string pwd) {
+        _commandList.Add($"SELECT set_attr({docId}, '{name}', '{value}', {link}, uid('{user}'), '{pwd}');");
+    }
+
+    /// <summary>
+    /// Method for adding reset attribute operation to command list
+    /// </summary>
+    /// <param name="docId">Document ID</param>
+    /// <param name="name">Attribute name</param>
+    /// <param name="user">Creator</param>
+    /// <param name="pwd">Creator's password</param>
+    public void AddResetAttribute(int docId, string name, string user, string pwd) {
+        _commandList.Add($"SELECT reset_attr({docId}, '{name}', uid('{user}'), '{pwd}');");
+    }
+
+    /// <summary>
+    /// Method for adding insert attribute operation to command list
+    /// </summary>
+    /// <param name="docId">Document ID</param>
+    /// <param name="name">Attribute name</param>
+    /// <param name="value">Attribute value</param>
+    /// <param name="link">Link flag</param>
+    /// <param name="user">Creator</param>
+    /// <param name="pwd">Creator's password</param>
+    public void AddInsertAttribute(int docId, string name, string value, bool link, string user, string pwd) {
+        _commandList.Add($"SELECT insert_attr({docId}, '{name}', '{value}', {link}, uid('{user}'), '{pwd}');");
+    }
+
+    /// <summary>
+    /// Method for adding remove attribute operation to command list
+    /// </summary>
+    /// <param name="docId">Document ID</param>
+    /// <param name="name">Attribute name</param>
+    /// <param name="value">Attribute value</param>
+    /// <param name="user">Creator</param>
+    /// <param name="pwd">Creator's password</param>
+    public void AddRemoveAttribute(int docId, string name, string value, string user, string pwd) {
+        _commandList.Add($"SELECT remove_attr({docId}, '{name}', '{value}', uid('{user}'), '{pwd}');");
+    }
+
+    /// <summary>
+    /// Method for attribute and value extraction
+    /// </summary>
+    /// <param name="docId">Document ID</param>
+    /// <param name="time">Time stamp</param>
+    /// <returns>Data table with retrieved information</returns>
     public DataTable ScanDocs(int docId, DateTime time) {
         var queryString = $"SELECT * FROM scandocs({docId}, '{time:yyyy-MM-dd HH:mm:ss.ffffff}');";
         return ExecuteFunctionWithResult(queryString);
     }
 
     /// <summary>
-    /// Metoda pro získání seznamu dokumentů vybraného uživatele
+    /// Method for retrieving user's document list
     /// </summary>
-    /// <param name="user">Jméno uživatele</param>
-    /// <param name="pwd">Heslo uživatele</param>
-    /// <returns>Datová tabulka se získanými informacemi</returns>
+    /// <param name="user">Username</param>
+    /// <param name="pwd">User's password</param>
+    /// <returns>Data table with retrieved information</returns>
     public DataTable ListDocs(string user, string pwd) {
         var queryString = $"SELECT * FROM list_docs(uid('{user}'), '{pwd}');";
         return ExecuteFunctionWithResult(queryString);
