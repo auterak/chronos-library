@@ -1,4 +1,6 @@
-﻿using System;
+﻿//Copyright - Martin Auterský from Hidden Valor team
+
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -123,8 +125,8 @@ public class ChronosLibrary {
     /// <param name="name">Attribute name</param>
     /// <param name="value">Attribute value</param>
     /// <param name="link">Link flag</param>
-    /// <param name="user">Creator</param>
-    /// <param name="pwd">Creator's password</param>
+    /// <param name="user">User</param>
+    /// <param name="pwd">User's password</param>
     public void AddSetAttribute(int docId, string name, string value, bool link, string user, string pwd) {
         _commandList.Add($"SELECT set_attr({docId}, '{name}', '{value}', {link}, uid('{user}'), '{pwd}');");
     }
@@ -134,8 +136,8 @@ public class ChronosLibrary {
     /// </summary>
     /// <param name="docId">Document ID</param>
     /// <param name="name">Attribute name</param>
-    /// <param name="user">Creator</param>
-    /// <param name="pwd">Creator's password</param>
+    /// <param name="user">User</param>
+    /// <param name="pwd">User's password</param>
     public void AddResetAttribute(int docId, string name, string user, string pwd) {
         _commandList.Add($"SELECT reset_attr({docId}, '{name}', uid('{user}'), '{pwd}');");
     }
@@ -147,8 +149,8 @@ public class ChronosLibrary {
     /// <param name="name">Attribute name</param>
     /// <param name="value">Attribute value</param>
     /// <param name="link">Link flag</param>
-    /// <param name="user">Creator</param>
-    /// <param name="pwd">Creator's password</param>
+    /// <param name="user">User</param>
+    /// <param name="pwd">User's password</param>
     public void AddInsertAttribute(int docId, string name, string value, bool link, string user, string pwd) {
         _commandList.Add($"SELECT insert_attr({docId}, '{name}', '{value}', {link}, uid('{user}'), '{pwd}');");
     }
@@ -159,10 +161,20 @@ public class ChronosLibrary {
     /// <param name="docId">Document ID</param>
     /// <param name="name">Attribute name</param>
     /// <param name="value">Attribute value</param>
-    /// <param name="user">Creator</param>
-    /// <param name="pwd">Creator's password</param>
+    /// <param name="user">User</param>
+    /// <param name="pwd">User's password</param>
     public void AddRemoveAttribute(int docId, string name, string value, string user, string pwd) {
         _commandList.Add($"SELECT remove_attr({docId}, '{name}', '{value}', uid('{user}'), '{pwd}');");
+    }
+
+    /// <summary>
+    /// Method for adding remove document function to command list
+    /// </summary>
+    /// <param name="docId">Document ID</param>
+    /// <param name="user">Creator</param>
+    /// <param name="pwd">Creator's password</param>
+    public void AddRemoveDoc(int docId, string user, string pwd) {
+        _commandList.Add($"SELECT remove_doc({docId}, uid('{user}'), '{pwd}')");
     }
 
     /// <summary>
@@ -177,7 +189,7 @@ public class ChronosLibrary {
     }
 
     /// <summary>
-    /// Method for retrieving user's document list
+    /// Method for obtaining user's document list
     /// </summary>
     /// <param name="user">Username</param>
     /// <param name="pwd">User's password</param>
@@ -188,191 +200,191 @@ public class ChronosLibrary {
     }
 
     /// <summary>
-    /// Metoda pro získání seznamu nájemníků vybraného dokumentu
+    /// Method for retrieving lessee list
     /// </summary>
-    /// <param name="docId">Identifikátor dokumentu</param>
-    /// <param name="user">Jméno uživatele</param>
-    /// <param name="pwd">Heslo uživatele</param>
-    /// <returns>Datová tabulka se získanými informacemi</returns>
+    /// <param name="docId">Document ID</param>
+    /// <param name="user">Username</param>
+    /// <param name="pwd">User's password</param>
+    /// <returns>Data table with retrieved information</returns>
     public DataTable ListLessees(int docId, string user, string pwd) {
         var queryString = $"SELECT * FROM list_lessees({docId}, uid('{user}', '{pwd}');";
         return ExecuteFunctionWithResult(queryString);
     }
 
     /// <summary>
-    /// Metoda pro vložení nového dokumentu do databáze
+    /// Method for creating new document
     /// </summary>
-    /// <param name="creator">Tvůrce dokumentu</param>
-    /// <param name="pwd">Heslo tvůrce</param>
-    /// <returns>Identifikátor dokumentu</returns>
-    public int InsertDoc(string creator, string pwd) {
-        var queryString = $"SELECT insert_doc(uid('{creator}'), '{pwd}');";
+    /// <param name="creator">Document creator</param>
+    /// <param name="pwd">Creator's password</param>
+    /// <returns>Document ID</returns>
+    public int CreateDoc(string creator, string pwd) {
+        var queryString = $"SELECT create_doc(uid('{creator}'), '{pwd}');";
         return int.Parse(ExtractFirst(ExecuteFunctionWithResult(queryString)));
     }
 
     /// <summary>
-    /// Metoda pro vložení nekontejnerového atributu do dokumentu
+    /// Method for set attribute operation
     /// </summary>
-    /// <param name="docId">Identifikátor dokumentu</param>
-    /// <param name="name">Název atributu</param>
-    /// <param name="value">Hodnota atributu</param>
-    /// <param name="link">Příznak odkazu</param>
-    /// <param name="user">Jméno uživatele</param>
-    /// <param name="pwd">Heslo uživatele</param>
+    /// <param name="docId">Document ID</param>
+    /// <param name="name">Attribute name</param>
+    /// <param name="value">Attribute value</param>
+    /// <param name="link">Link flag</param>
+    /// <param name="user">Username</param>
+    /// <param name="pwd">User's password</param>
     public void SetAttribute(int docId, string name, string value, bool link, string user, string pwd) {
         var queryString = $"SELECT set_attr({docId}, '{name}', '{value}', {link}, uid('{user}'), '{pwd}');";
         ExecuteFunction(queryString);
     }
 
     /// <summary>
-    /// Metoda pro odstranění atributu
+    /// Method for reset attribute operation
     /// </summary>
-    /// <param name="docId">Identifikátor dokumentu</param>
-    /// <param name="name">Název atributu</param>
-    /// <param name="user">Jméno uživatele</param>
-    /// <param name="pwd">Heslo uživatele</param>
+    /// <param name="docId">Document ID</param>
+    /// <param name="name">Attribute name</param>
+    /// <param name="user">Username</param>
+    /// <param name="pwd">User's password</param>
     public void ResetAttribute(int docId, string name, string user, string pwd) {
         var queryString = $"SELECT reset_attr({docId}, '{name}', uid('{user}'), '{pwd}');";
         ExecuteFunction(queryString);
     }
 
     /// <summary>
-    /// Metoda pro vložení atributu do pole v dokumentu
+    /// Method for insert attribute to container operation
     /// </summary>
-    /// <param name="docId">Identifikátor dokumentu</param>
-    /// <param name="name">Název atributu</param>
-    /// <param name="value">Hodnota atributu</param>
-    /// <param name="link">Příznak odkazu</param>
-    /// <param name="user">Jméno uživatele</param>
-    /// <param name="pwd">Heslo uživatele</param>
+    /// <param name="docId">Document ID</param>
+    /// <param name="name">Attribute name</param>
+    /// <param name="value">Attribute value</param>
+    /// <param name="link">Link flag</param>
+    /// <param name="user">Username</param>
+    /// <param name="pwd">User's password</param>
     public void InsertAttribute(int docId, string name, string value, bool link, string user, string pwd) {
         var queryString = $"SELECT insert_attr({docId}, '{name}', '{value}', {link}, uid('{user}'), '{pwd}');";
         ExecuteFunction(queryString);
     }
 
     /// <summary>
-    /// Metoda pro odstranění atributu z pole
+    /// Method for remove attribute from container operation
     /// </summary>
-    /// <param name="docId">Identifikátor dokumentu</param>
-    /// <param name="name">Název atributu</param>
-    /// <param name="value">Hodnota atributu</param>
-    /// <param name="user">Jméno uživatele</param>
-    /// <param name="pwd">Heslo uživatele</param>
+    /// <param name="docId">Document ID</param>
+    /// <param name="name">Attribute name</param>
+    /// <param name="value">Attribute value</param>
+    /// <param name="user">Username</param>
+    /// <param name="pwd">User's password</param>
     public void RemoveAttribute(int docId, string name, string value, string user, string pwd) {
         var queryString = $"SELECT remove_attr({docId}, '{name}', '{value}', uid('{user}'), '{pwd}');";
         ExecuteFunction(queryString);
     }
 
     /// <summary>
-    /// Metoda pro propůjčení dokumentu
+    /// Method for lease creation
     /// </summary>
-    /// <param name="docId">Identifikátor dokumentu</param>
-    /// <param name="lessor">Pronajímatel</param>
-    /// <param name="pwd">Heslo pronajímatele</param>
-    /// <param name="lessee">Nájemník</param>
+    /// <param name="docId">Document ID</param>
+    /// <param name="lessor">Lessor</param>
+    /// <param name="pwd">Lessor's password</param>
+    /// <param name="lessee">Lessee</param>
     public void CreateLease(int docId, string lessor, string pwd, string lessee) {
         var queryString = $"SELECT lease({docId}, uid('{lessor}'), '{pwd}', uid('{lessee}'));";
         ExecuteFunction(queryString);
     }
 
     /// <summary>
-    /// Metoda pro vytvoření nového uživatele
+    /// Method for user creation
     /// </summary>
-    /// <param name="user">Jméno uživatele</param>
-    /// <param name="pwd">Heslo uživatele</param>
-    /// <param name="admin">Příznak admina</param>
-    /// <param name="creator">Tvůrce</param>
-    /// <param name="creatorPwd">Heslo tvůrce</param>
-    /// <returns>Identifikátor vytvořeného uživatele</returns>
+    /// <param name="user">Username</param>
+    /// <param name="pwd">User's password</param>
+    /// <param name="admin">Admin flag</param>
+    /// <param name="creator">Creator</param>
+    /// <param name="creatorPwd">Creator's password</param>
+    /// <returns>New user ID</returns>
     public int CreateUser(string user, string pwd, bool admin, string creator, string creatorPwd) {
         var queryString = $"SELECT create_user('{user}', '{pwd}', {admin}, uid('{creator}'), '{creatorPwd}');";
         return int.Parse(ExtractFirst(ExecuteFunctionWithResult(queryString)));
     }
 
     /// <summary>
-    /// Metoda pro otestování údajů uživatele
+    /// Method for credentials check
     /// </summary>
-    /// <param name="user">Jméno uživatele</param>
-    /// <param name="pwd">Heslo uživatele</param>
+    /// <param name="user">Username</param>
+    /// <param name="pwd">User's password</param>
     public void Credentials(string user, string pwd) {
         var queryString = $"SELECT credentials(uid('{user}'), '{pwd}');";
         ExecuteFunction(queryString);
     }
 
     /// <summary>
-    /// Metoda pro otestování, zda je uživatel adminem
+    /// Method for admin privileges check
     /// </summary>
-    /// <param name="user">Jméno uživatele</param>
-    /// <returns>True pokud je adminem, false pokud není adminem</returns>
+    /// <param name="user">Username</param>
+    /// <returns>True if admin, false if not admin</returns>
     public bool IsAdmin(string user) {
         var queryString = $"SELECT isAdmin(uid('{user}'));";
         return bool.Parse(ExtractFirst(ExecuteFunctionWithResult(queryString)));
     }
 
     /// <summary>
-    /// Metoda pro otestování, zda je uživatel tvůrcem dokumentu
+    /// Method for document creator check
     /// </summary>
-    /// <param name="docId">Identifikátor dokumentu</param>
-    /// <param name="user">Jméno uživatele</param>
-    /// <returns>True pokud je tvůrce, false pokud není tvůrcem</returns>
+    /// <param name="docId">Document ID</param>
+    /// <param name="user">Username</param>
+    /// <returns>True if creator, false if not creator</returns>
     public bool IsCreator(int docId, string user) {
         var queryString = $"SELECT isCreator({docId}, uid('{user}'));";
         return bool.Parse(ExtractFirst(ExecuteFunctionWithResult(queryString)));
     }
 
     /// <summary>
-    /// Metoda pro získání seznamu všech uživatelů
+    /// Method for obtaining user list
     /// </summary>
-    /// <param name="user">Jméno uživatele</param>
-    /// <param name="pwd">Heslo uživatele</param>
-    /// <returns>Datová tabulka se získanými informacemi</returns>
+    /// <param name="user">Username</param>
+    /// <param name="pwd">User's password</param>
+    /// <returns>Data table with retrieved information</returns>
     public DataTable ListUsers(string user, string pwd) {
         var queryString = $"SELECT * FROM list_users(uid('{user}'), '{pwd}');";
         return ExecuteFunctionWithResult(queryString);
     }
 
     /// <summary>
-    /// Metoda pro získání seznamu všech dokumentů
+    /// Method for obtaining document list
     /// </summary>
-    /// <param name="user">Jméno uživatele</param>
-    /// <param name="pwd">Heslo uživatele</param>
-    /// <returns>Datová tabulka se získanými informacemi</returns>
+    /// <param name="user">Username</param>
+    /// <param name="pwd">User's password</param>
+    /// <returns>Data table with retrieved information</returns>
     public DataTable ListAllDocs(string user, string pwd) {
         var queryString = $"SELECT * FROM list_all_docs(uid('{user}'), '{pwd}');";
         return ExecuteFunctionWithResult(queryString);
     }
 
     /// <summary>
-    /// Metoda pro získání identifikátoru schématu dokumentu
+    /// Method for obtaining document scheme
     /// </summary>
-    /// <param name="docId">Identifikátor dokumentu</param>
-    /// <param name="user">Jméno uživatele</param>
-    /// <param name="pwd">Heslo uživatele</param>
-    /// <returns>Identifikátor schématu</returns>
+    /// <param name="docId">Document ID</param>
+    /// <param name="user">Username</param>
+    /// <param name="pwd">User's password</param>
+    /// <returns>Scheme ID</returns>
     public int GetSchemeId(int docId, string user, string pwd) {
         var queryString = $"SELECT get_scheme_id({docId}, uid('{user}'), '{pwd}');";
         return int.Parse(ExtractFirst(ExecuteFunctionWithResult(queryString)));
     }
 
     /// <summary>
-    /// Metoda pro získání názvu dokumentu
+    /// Method for obtaining document name
     /// </summary>
-    /// <param name="docId">Identifikátor dokumentu</param>
-    /// <param name="user">Jméno uživatele</param>
-    /// <param name="pwd">Heslo uživatele</param>
-    /// <returns>Název dokumentu</returns>
+    /// <param name="docId">Document ID</param>
+    /// <param name="user">Username</param>
+    /// <param name="pwd">User's password</param>
+    /// <returns>Document name</returns>
     public string GetName(int docId, string user, string pwd) {
         var queryString = $"SELECT get_name({docId}, uid('{user}'), '{pwd}');";
         return ExtractFirst(ExecuteFunctionWithResult(queryString));
     }
 
     /// <summary>
-    /// Metoda pro zjištění odvození dokumentu
+    /// Method for shadow document check
     /// </summary>
-    /// <param name="docId">Identifikátor dokumentu</param>
-    /// <param name="user">Jméno uživatele</param>
-    /// <param name="pwd">Heslo uživatele</param>
-    /// <returns>True pokud je odvozen, false pokud není odvozen</returns>
+    /// <param name="docId">Document ID</param>
+    /// <param name="user">Username</param>
+    /// <param name="pwd">User's password</param>
+    /// <returns>True if has shadow, false if not</returns>
     public bool HasShadow(int docId, string user, string pwd) {
         var queryString = $"SELECT has_shadow({docId}, uid('{user}'), '{pwd}');";
         return bool.Parse(ExtractFirst(ExecuteFunctionWithResult(queryString)));

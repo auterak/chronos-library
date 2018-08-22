@@ -1,3 +1,3 @@
 ﻿[x]   Add option to use transactions
-[ ]   Rework documentation into English
+[x]   Rework documentation into English
 [ ]   Parallelize transactions
